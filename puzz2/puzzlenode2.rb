@@ -24,32 +24,16 @@ def cheap_flight (flights)
                     # sleeping in the airport.
                     next_city = flight[:arrival_city]
 
-                    puts 
-                    puts "This is the current flight being tested:"
-                    puts flight
-                    puts
-
                     # Gather all available next flights
                     next_flights = flights.find_all {|flight_departure| flight_departure[:departure_city] == next_city}
-                    puts
-                    puts "These are the next flights"
-                    puts next_flights
-                    puts
-                    eligable_next_flights = [] 
 
                     # Check to see if the next flight's departure time is greater than the current flight's arrival time
+                    eligable_next_flights = []
                     next_flights.each do |next_flight|
                         if flight[:arrival_time].gsub(':','.').to_f < next_flight[:departure_time].gsub(':','.').to_f
                             eligable_next_flights << next_flight
                         end
                     end
-                    puts
-                    puts "This is your arrival time"
-                    puts flight[:arrival_time]
-                    puts
-                    puts "These are the ELIGABLE next flights"
-                    puts eligable_next_flights
-                    puts
 
                     if eligable_next_flights.count > 0 || flight[:arrival_city] == "Z"
 
@@ -66,12 +50,6 @@ def cheap_flight (flights)
                 end
             end
         end
-
-        puts "Departure City: " + departure_city
-
-
-        puts "Eligable Flights: " 
-        puts eligable_flights
 
         # Now we need to check our arrays to see which flight is the cheapest.
 
@@ -113,10 +91,7 @@ def cheap_flight (flights)
             cheapest_flight = cheapest_flight[0] # Hooray, we've found the cheapest flight!
         end
 
-        puts
-        puts "The flight you take is: "
-        puts cheapest_flight
-        puts
+
 
         visited_cities << departure_city # Check this city off your list as visited
         departure_city = cheapest_flight[:arrival_city] # Take the flight! Set the new departure city for the next city you arrive in.
@@ -130,7 +105,112 @@ def cheap_flight (flights)
 end
 
 def fast_flight (flights)
+    cities = []
+    ("A".."Z").each do |letter|
+        cities << letter
+    end
+    departure_city = "A" # Initialize departure city
+    visited_cities = []
+    total_speed = []
+    current_time = 0.00
+    while departure_city != "Z" # Let's fly around till we get to Z like a bunch of crazy Jet-Setters
 
+        eligable_flights = [] # Zero out eligable flights & cost compare arrays for the upcoming test
+        cost_compare = []
+
+        flights.each do |flight|
+
+            # Make sure we're in the right airport
+            if (flight[:departure_city] == departure_city)
+
+                # Make sure we're not taking a flight that's already left!
+                if flight[:departure_time].gsub(':','.').to_f > current_time
+
+                    # Make sure we can actually get on a 'next' flight at our destination and don't wind up 
+                    # sleeping in the airport.
+                    next_city = flight[:arrival_city]
+
+                    # Gather all available next flights
+                    next_flights = flights.find_all {|flight_departure| flight_departure[:departure_city] == next_city}
+
+                    # Check to see if the next flight's departure time is greater than the current flight's arrival time
+                    eligable_next_flights = []
+                    next_flights.each do |next_flight|
+                        if flight[:arrival_time].gsub(':','.').to_f < next_flight[:departure_time].gsub(':','.').to_f
+                            eligable_next_flights << next_flight
+                        end
+                    end
+
+                    if eligable_next_flights.count > 0 || flight[:arrival_city] == "Z"
+
+                        # Make sure we're getting closer to our destination. We can do this by checking to make sure we're not 
+                        # arriving at a city we've already been to
+                        if !visited_cities.include? flight[:arrival_city]                    
+
+                            # If it passes the above criteria it is an acceptible flight and is placed into the arrays. 
+                            # Holy carp that was a bitsh. 
+                            cost_compare << flight[:cost].to_f
+                            eligable_flights << flight
+                        end
+                    end
+                end
+            end
+        end
+
+        # Now we need to check our eligable flight options to see which one is the fastest.
+
+        fastest_flight = []
+
+        # Add new key/value pair for flight duration
+        eligable_flights.each do |flight|
+            flight_duration = flight[:arrival_time].gsub(':','.').to_f - flight[:departure_time].gsub(':','.').to_f
+            flight.merge!(:flight_duration => flight_duration)
+        end
+
+        time_differences = [] 
+            
+        eligable_flights.each do |flight|
+            time_differences << flight[:flight_duration]
+        end
+
+        fastest_time = time_differences.sort.shift # Get the fastest time
+
+        eligable_flights.each do |flight|
+            if flight[:flight_duration] == fastest_time
+                fastest_flight << flight
+            end
+        end
+
+        if fastest_flight.count > 1 
+            # Uh oh, more than one flight on our list has the same "fastness." Well, let's see which one's cheaper.
+            
+            cheapest_cost = []
+
+            fastest_flight.each do |flight|
+                cheapest_cost << flight[:cost].to_f
+            end
+            cheapest = cheapest_cost.sort.shift
+
+            fastest_flight.each do |flight| 
+                if flight[:cost].to_f == cheapest
+                    fastest_flight = flight
+                end
+            end            
+        else 
+            fastest_flight = fastest_flight[0] # Hooray, we've found the fastest flight!
+        end
+
+
+
+        visited_cities << departure_city # Check this city off your list as visited
+        departure_city = fastest_flight[:arrival_city] # Take the flight! Set the new departure city for the next city you arrive in.
+        current_time = fastest_flight[:arrival_time].gsub(':','.').to_f # Set the new current time based on when we arrived.
+        total_speed << fastest_flight[:flight_duration]
+    end
+    puts total_speed
+    total_speed = total_speed.map { |speed| speed.to_f }.inject(:+) # Sum up the total cost with some spiffy injecting.
+    puts "Total trip speed: "
+    puts '%.2f' % total_speed 
 end
 
 
@@ -546,5 +626,7 @@ flights5 = create_flight_details(flight_string_5)
 
 separator()
 cheap_flight(flights5)
+separator()
+fast_flight(flights5)
 separator()
 puts #Adding an extra line break for added readability in terminal
